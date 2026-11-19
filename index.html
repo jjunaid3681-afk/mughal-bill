@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Mughal Corporation &amp; Pipe Store - Voice Billing</title>
+<style>
+  :root {
+    --primary: #0f3d68;
+    --primary-light: #1a5b96;
+    --accent: #d9381e;
+    --success: #15803d;
+    --bg: #f1f5f9;
+    --card: #ffffff;
+    --border: #cbd5e1;
+    --text: #0f172a;
+    --muted: #475569;
+  }
+  * {
+    box-sizing: border-box;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  body {
+    margin: 0;
+    padding: 12px;
+    background: var(--bg);
+    color: var(--text);
+  }
+  .container {
+    max-width: 820px;
+    margin: 0 auto;
+  }
+  .card {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 14px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    border: 1px solid #e2e8f0;
+  }
+  .shop-header {
+    background: linear-gradient(135deg, #0b2d4d 0%, #174e82 100%);
+    color: #fff;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 14px;
+    text-align: center;
+  }
+  .shop-title-en {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    margin: 0;
+  }
+  .shop-title-ur {
+    font-size: 20px;
+    font-weight: 700;
+    margin: 4px 0 6px 0;
+    direction: rtl;
+  }
+  .shop-sub {
+    font-size: 13px;
+    opacity: 0.92;
+    margin: 2px 0;
+  }
+  .shop-phones {
+    margin-top: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    background: rgba(255,255,255,0.14);
+    display: inline-block;
+    padding: 5px 12px;
+    border-radius: 20px;
+  }
+  h3 {
+    margin: 0 0 10px 0;
+    font-size: 16px;
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .col {
+    flex: 1;
+    min-width: 140px;
+  }
+  label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  input, select, textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    font-size: 15px;
+    background: #fff;
+    color: var(--text);
+  }
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+  }
+  .btn {
+    border: none;
+    border-radius: 8px;
+    padding: 11px 16px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: opacity 0.15s, transform 0.1s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn:active {
+    transform: scale(0.98);
+  }
+  .btn-mic {
+    background: var(--accent);
+    color: #fff;
+    width: 100%;
+    padding: 14px;
+    font-size: 16px;
+    border-radius: 10px;
+  }
+  .btn-mic.listening {
+    background: #991b1b;
+    animation: pulse 1.2s infinite;
+  }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(217, 56, 30, 0.6); }
+    70% { box-shadow: 0 0 0 12px rgba(217, 56, 30, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(217, 56, 30, 0); }
+  }
+  .btn-primary {
+    background: var(--primary);
+    color: #fff;
+  }
+  .btn-success {
+    background: var(--success);
+    color: #fff;
+  }
+  .btn-outline {
+    background: #fff;
+    color: var(--primary);
+    border: 1.5px solid var(--primary);
+  }
+  .btn-danger-sm {
+    background: #fee2e2;
+    color: #b91c1c;
+    padding: 5px 9px;
+    font-size: 13px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-weight: 700;
+  }
+  .status-box {
+    margin-top: 8px;
+    padding: 9px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    color: #334155;
+  }
+  .status-box.error {
+    background: #fef2f2;
+    border-color: #fecaca;
+    color: #b91c1c;
+  }
+  .status-box.ok {
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+    color: #166534;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 8px;
+  }
+  th {
+    background: #f1f5f9;
+    color: var(--primary);
+    font-size: 12px;
+    text-transform: uppercase;
+    padding: 9px 6px;
+    text-align: left;
+    border-bottom: 2px solid var(--border);
+  }
+  td {
+    padding: 8px 6px;
+    border-bottom: 1px solid #e2e8f0;
+    font-size: 14px;
+    vertical-align: middle;
+  }
+  td input {
+    padding: 6px 8px;
+    font-size: 14px;
+  }
+  .num {
+    text-align: right;
+  }
+  .totals-box {
+    margin-top: 14px;
+    background: #f8fafc;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+  }
+  .total-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 0;
+    font-size: 15px;
+  }
+  .total-row.grand {
+    border-top: 2px solid var(--primary);
+    margin-top: 6px;
+    padding-top: 10px;
+    font-size: 19px;
+    font-weight: 800;
+    color: var(--primary);
+  }
+  .action-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px;
+    margin-top: 14px;
+  }
+  .helper-hint {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 5px;
+    line-height: 1.4;
+  }
+
+  /* Print Receipt Styling */
+  @media print {
+    body {
+      background: #fff;
+      padding: 0;
+    }
+    .no-print {
+      display: none !important;
+    }
+    .card {
+      box-shadow: none;
+      border: none;
+      padding: 0;
+      margin: 0;
+    }
+    .shop-header {
+      background: #fff !important;
+      color: #000 !important;
+      border-bottom: 2px solid #000;
+      border-radius: 0;
+      padding: 8px 0;
+    }
+    .shop-phones {
+      background: none !important;
+      color: #000 !important;
+      border: 1px solid #000;
+    }
+    input, select {
+      border: none !important;
+      padding: 0 !important;
+      background: transparent !important;
+      color: #000 !important;
+      font-weight: 600;
+    }
+    td input {
+      width: 100%;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- SHOP HEADER -->
+  <div class="shop-header">
+    <h1 class="shop-title-en">MUGHAL CORPORATION &amp; PIPE STORE</h1>
+    <div class="shop-title-ur">مغل کارپوریشن اینڈ پائپ سٹور</div>
+    <div class="shop-sub">Wholesale Dealer: MasterFit UPVC / PPR Pipes, Water Tanks, GI &amp; CP Sanitary Fittings</div>
+    <div class="shop-sub">Prop: Atif Mughal &amp; Haji Javed Iqbal | Kalma Chowk, Ghauri Town Phase 4-A, Islamabad</div>
+    <div class="shop-phones">Ph: 0312-5183643 | 0344-4284566 | 0336-7991094</div>
+  </div>
+
+  <!-- BILL DETAILS -->
+  <div class="card">
+    <h3>
+      <span>Customer &amp; Invoice Info</span>
+      <button type="button" id="btnNewBill" class="btn btn-outline" style="padding: 6px 12px; font-size: 13px;">+ New Bill</button>
+    </h3>
+    <div class="row">
+      <div class="col">
+        <label for="billNo">Bill / Invoice #</label>
+        <input type="text" id="billNo" value="MC-1001">
+      </div>
+      <div class="col">
+        <label for="billDate">Date (Auto Today)</label>
+        <input type="date" id="billDate">
+      </div>
+    </div>
+    <div class="row" style="margin-bottom: 0;">
+      <div class="col">
+        <label for="custName">Customer Name</label>
+        <input type="text" id="custName" placeholder="Walk-in Customer">
+      </div>
+      <div class="col">
+        <label for="custPhone">Customer Phone (Optional)</label>
+        <input type="tel" id="custPhone" placeholder="03XX-XXXXXXX">
+      </div>
+    </div>
+  </div>
+
+  <!-- VOICE BILLING SECTION -->
+  <div class="card no-print">
+    <h3>
+      <span>1. Speak Items (Urdu / English)</span>
+      <select id="voiceLang" style="width: auto; padding: 5px 10px; font-size: 13px;">
+        <option value="ur-PK">Urdu (ur-PK)</option>
+        <option value="en-PK">English (en-PK)</option>
+      </select>
+    </h3>
+
+    <button type="button" id="btnSpeak" class="btn btn-mic">
+      <span id="micIcon">🎤</span>
+      <span id="micLabel">Tap to Speak Items</span>
+    </button>
+
+    <div id="voiceStatus" class="status-box">
+      Ready. Tap the red button and say e.g. <b>"2 PVC pipe 500, 1 basin mixer 4500"</b>
+    </div>
+
+    <div style="margin-top: 10px;">
+      <label for="spokenText">Spoken / Dictated Text (Also works with iPhone/Android Keyboard Mic 🎙️):</label>
+      <textarea id="spokenText" rows="2" placeholder="Speak above OR tap here and use your phone keyboard's mic button, then tap 'Add Spoken Text to Bill'..."></textarea>
+      <div style="display: flex; gap: 8px; margin-top: 8px;">
+        <button type="button" id="btnParseSpoken" class="btn btn-primary" style="flex: 1;">+ Add Spoken Text to Bill</button>
+        <button type="button" id="btnClearSpoken" class="btn btn-outline">Clear</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MANUAL ENTRY SECTION -->
+  <div class="card no-print">
+    <h3>2. Add Item Manually</h3>
+    <div class="row">
+      <div class="col" style="flex: 2; min-width: 180px;">
+        <label for="manualName">Item Name</label>
+        <input type="text" id="manualName" placeholder="e.g. 4 inch UPVC Pipe">
+      </div>
+      <div class="col" style="max-width: 100px;">
+        <label for="manualQty">Qty</label>
+        <input type="number" id="manualQty" value="1" min="0.1" step="any">
+      </div>
+      <div class="col" style="max-width: 130px;">
+        <label for="manualPrice">Rate (Rs.)</label>
+        <input type="number" id="manualPrice" placeholder="0" min="0" step="any">
+      </div>
+    </div>
+    <button type="button" id="btnAddManual" class="btn btn-primary" style="width: 100%;">+ Add Item to Bill</button>
+  </div>
+
+  <!-- HANDWRITTEN BILL PHOTO SCANNER -->
+  <div class="card no-print">
+    <h3>3. Convert Handwritten Bill Photo</h3>
+    <input type="file" id="ocrImageInput" accept="image/*" capture="environment" style="margin-bottom: 8px;">
+    <div id="ocrStatus" class="status-box">
+      Select or take a photo of a handwritten slip to extract items automatically.
+    </div>
+    <div id="ocrPreviewWrap" style="display:none; margin-top: 10px;">
+      <label for="ocrExtractedText">Extracted Lines (Review &amp; fix numbers if needed):</label>
+      <textarea id="ocrExtractedText" rows="4"></textarea>
+      <button type="button" id="btnAddOcrItems" class="btn btn-success" style="width: 100%; margin-top: 8px;">+ Convert Extracted Lines to Bill</button>
+    </div>
+  </div>
+
+  <!-- COMPUTERIZED BILL TABLE -->
+  <div class="card">
+    <h3>
+      <span>Computerized Bill</span>
+      <span id="printDateBadge" style="font-size: 13px; color: var(--muted); font-weight: 600;"></span>
+    </h3>
+
+    <div style="overflow-x: auto;">
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 34px;">#</th>
+            <th>Item Description</th>
+            <th style="width: 72px;" class="num">Qty</th>
+            <th style="width: 95px;" class="num">Rate (Rs)</th>
+            <th style="width: 100px;" class="num">Total</th>
+            <th style="width: 40px;" class="no-print"></th>
+          </tr>
+        </thead>
+        <tbody id="billBody">
+          <tr>
+            <td colspan="6" style="text-align: center; color: #64748b; padding: 20px;">
+              No items added yet. Speak or add items above.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="totals-box">
+      <div class="total-row">
+        <span>Subtotal:</span>
+        <strong id="subTotalDisplay">Rs. 0</strong>
+      </div>
+      <div class="total-row">
+        <span>Discount (Rs.):</span>
+        <input type="number" id="discountInput" value="0" min="0" style="width: 110px; text-align: right; padding: 5px 8px;">
+      </div>
+      <div class="total-row grand">
+        <span>GRAND TOTAL:</span>
+        <span id="grandTotalDisplay">Rs. 0</span>
+      </div>
+    </div>
+
+    <div class="action-grid no-print">
+      <button type="button" id="btnPrint" class="btn btn-primary">🖨️ Print / Save PDF</button>
+      <button type="button" id="btnWhatsApp" class="btn btn-success">💬 Send on WhatsApp</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function() {
+  // 1. STATE
+  var billItems = [];
+  var recognition = null;
+  var isListening = false;
+
+  // 2. DOM ELEMENTS
+  var billNoEl = document.getElementById('billNo');
+  var billDateEl = document.getElementById('billDate');
+  var printDateBadgeEl = document.getElementById('printDateBadge');
+  var custNameEl = document.getElementById('custName');
+  var custPhoneEl = document.getElementById('custPhone');
+
+  var voiceLangEl = document.getElementById('voiceLang');
+  var btnSpeakEl = document.getElementById('btnSpeak');
+  var micLabelEl = document.getElementById('micLabel');
+  var voiceStatusEl = document.getElementById('voiceStatus');
+  var spokenTextEl = document.getElementById('spokenText');
+  var btnParseSpokenEl = document.getElementById('btnParseSpoken');
+  var btnClearSpokenEl = document.getElementById('btnClearSpoken');
+
+  var manualNameEl = document.getElementById('manualName');
+  var manualQtyEl = document.getElementById('manualQty');
+  var manualPriceEl = document.getElementById('manualPrice');
+  var btnAddManualEl = document.getElementById('btnAddManual');
+
+  var ocrImageInputEl = document.getElementById('ocrImageInput');
+  var ocrStatusEl = document.getElementById('ocrStatus');
+  var ocrPreviewWrapEl = document.getElementById('ocrPreviewWrap');
+  var ocrExtractedTextEl = document.getElementById('ocrExtractedText');
+  var btnAddOcrItemsEl = document.getElementById('btnAddOcrItems');
+
+  var billBodyEl = document.getElementById('billBody');
+  var subTotalDisplayEl = document.getElementById('subTotalDisplay');
+  var discountInputEl = document.getElementById('discountInput');
+  var grandTotalDisplayEl = document.getElementById('grandTotalDisplay');
+
+  var btnNewBillEl = document.getElementById('btnNewBill');
+  var btnPrintEl = document.getElementById('btnPrint');
+  var btnWhatsAppEl = document.getElementById('btnWhatsApp');
+
+  // 3. SET TODAY'S DATE AUTOMATICALLY
+  function setTodayDate() {
+    var now = new Date();
+    var yyyy = now.getFullYear();
+    var mm = String(now.getMonth() + 1).padStart(2, '0');
+    var dd = String(now.getDate()).padStart(2, '0');
+    var isoDate = yyyy + '-' + mm + '-' + dd;
+    billDateEl.value = isoDate;
+    printDateBadgeEl.textContent = 'Date: ' + dd + '/' + mm + '/' + yyyy;
+  }
+
+  billDateEl.addEventListener('change', function() {
+    if (billDateEl.value) {
+      var parts = billDateEl.value.split('-');
+      if (parts.length === 3) {
+        printDateBadgeEl.textContent = 'Date: ' + parts[2] + '/' + parts[1] + '/' + parts[0];
+      }
+    }
+  });
+
+  // 4. NUMBER NORMALIZATION (URDU DIGITS & WORDS TO ENGLISH NUMBERS)
+  function normalizeNumbers(str) {
+    if (!str) return '';
+    var map = {
+      '۰':'0','۱':'1','۲':'2','۳':'3','۴':'4','۵':'5','۶':'6','۷':'7','۸':'8','۹':'9',
+      '٠':'0','١':'1','٢':'2','٣':'3','٤':'4','٥':'5','٦':'6','٧':'7','٨':'8','٩':'9'
+    };
+    var out = str.replace(/[۰-۹٠-٩]/g, function(ch) { return map[ch] || ch; });
+
+    var wordMap = [
+      [/(ایک|aik|ek|one)/gi, '1'],
+      [/(دو|do|two)/gi, '2'],
+      [/(تین|teen|three)/gi, '3'],
+      [/(چار|char|four)/gi, '4'],
+      [/(پانچ|panch|paanch|five)/gi, '5'],
+      [/(چھ|che|chay|six)/gi, '6'],
+      [/(سات|saat|seven)/gi, '7'],
+      [/(آٹھ|aath|eight)/gi, '8'],
+      [/(نو|nau|nine)/gi, '9'],
+      [/(دس|das|ten)/gi, '10'],
+      [/(بیس|bees|twenty)/gi, '20'],
+      [/(تیس|tees|thirty)/gi, '30'],
+      [/(چالیس|chalees|forty)/gi, '40'],
+      [/(پچاس|pachas|fifty)/gi, '50'],
+      [/(سو|sau|so|hundred)/gi, '100'],
+      [/(ہزار|hazar|hazaar|thousand)/gi, '1000']
+    ];
+    for (var i = 0; i < wordMap.length; i++) {
+      out = out.replace(wordMap[i][0], wordMap[i][1]);
+    }
+    // Combine patterns like "5 100" -> "500" and "4 1000" -> "4000"
+    out = out.replace(/(\d+)\s+1000/g, function(_, n) { return String(Number(n) * 1000); });
+    out = out.replace(/(\d+)\s+100/g, function(_, n) { return String(Number(n) * 100); });
+    return out;
+  }
+
+  // 5. PARSE SPOKEN / TEXT LINES INTO ITEMS
+  function parseAndAddItems(rawText) {
+    var cleaned = normalizeNumbers(rawText);
+    // Split by comma, newline, Urdu comma, or "aur" / "and"
+    var chunks = cleaned.split(/[
+,،]+|\s+(?:and|aur|اور)\s+/i);
+    var addedCount = 0;
+
+    for (var i = 0; i < chunks.length; i++) {
+      var line = chunks[i].trim();
+      if (!line) continue;
+
+      // Extract all numbers in the chunk
+      var nums = line.match(/\d+(?:\.\d+)?/g);
+      // Remove filler words like "rupees", "rs", "ka", "ke", "ki", "each", "rate", "price"
+      var namePart = line
+        .replace(/(?:rs|rupees|rupay|rupee|pkr|rate|price|each|per|piece|pcs|pic|ka|ke|ki|wala|walay|روپے|کا|کے|کی|عدد|پیس)/gi, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      var qty = 1;
+      var price = 0;
+
+      if (nums && nums.length >= 2) {
+        // Check if text starts with a number (e.g. "2 PVC pipe 500")
+        if (/^\d/.test(line)) {
+          qty = parseFloat(nums[0]);
+          price = parseFloat(nums[nums.length - 1]);
+          // Strip leading qty and trailing price from name
+          namePart = namePart.replace(/^\d+(?:\.\d+)?\s*/, '').replace(/\s*\d+(?:\.\d+)?$/, '').trim();
+        } else {
+          // e.g. "PVC pipe 2 500"
+          qty = parseFloat(nums[nums.length - 2]);
+          price = parseFloat(nums[nums.length - 1]);
+          namePart = namePart.replace(/\d+(?:\.\d+)?/g, '').trim();
+        }
+      } else if (nums && nums.length === 1) {
+        // Only one number given -> treat as price with qty 1
+        qty = 1;
+        price = parseFloat(nums[0]);
+        namePart = namePart.replace(/\d+(?:\.\d+)?/g, '').trim();
+      }
+
+      if (!namePart) {
+        namePart = 'Sanitary Item';
+      }
+
+      if (price > 0 || namePart !== 'Sanitary Item') {
+        billItems.push({
+          name: namePart,
+          qty: qty > 0 ? qty : 1,
+          price: price >= 0 ? price : 0
+        });
+        addedCount++;
+      }
+    }
+
+    renderBill();
+    return addedCount;
+  }
+
+  // 6. RENDER BILL TABLE & CALCULATE TOTALS
+  function renderBill() {
+    if (billItems.length === 0) {
+      billBodyEl.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#64748b;padding:20px;">No items added yet. Speak or add items above.</td></tr>';
+      subTotalDisplayEl.textContent = 'Rs. 0';
+      grandTotalDisplayEl.textContent = 'Rs. 0';
+      return;
+    }
+
+    var html = '';
+    var subtotal = 0;
+
+    for (var i = 0; i < billItems.length; i++) {
+      var item = billItems[i];
+      var lineTotal = (Number(item.qty) || 0) * (Number(item.price) || 0);
+      subtotal += lineTotal;
+
+      html += '<tr>' +
+        '<td>' + (i + 1) + '</td>' +
+        '<td><input type="text" data-idx="' + i + '" data-field="name" value="' + escapeHtml(item.name) + '"></td>' +
+        '<td class="num"><input type="number" class="num" data-idx="' + i + '" data-field="qty" value="' + item.qty + '" min="0" step="any"></td>' +
+        '<td class="num"><input type="number" class="num" data-idx="' + i + '" data-field="price" value="' + item.price + '" min="0" step="any"></td>' +
+        '<td class="num"><strong>' + formatMoney(lineTotal) + '</strong></td>' +
+        '<td class="no-print" style="text-align:center;"><button type="button" class="btn-danger-sm" data-del="' + i + '">✕</button></td>' +
+      '</tr>';
+    }
+
+    billBodyEl.innerHTML = html;
+    updateTotalsOnly();
+  }
+
+  function updateTotalsOnly() {
+    var subtotal = 0;
+    for (var i = 0; i < billItems.length; i++) {
+      subtotal += (Number(billItems[i].qty) || 0) * (Number(billItems[i].price) || 0);
+    }
+    var discount = Number(discountInputEl.value) || 0;
+    var grandTotal = Math.max(0, subtotal - discount);
+
+    subTotalDisplayEl.textContent = 'Rs. ' + formatMoney(subtotal);
+    grandTotalDisplayEl.textContent = 'Rs. ' + formatMoney(grandTotal);
+  }
+
+  function formatMoney(num) {
+    return Math.round(num).toLocaleString('en-PK');
+  }
+
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  // Inline table editing & delete delegation
+  billBodyEl.addEventListener('input', function(e) {
+    var target = e.target;
+    var idx = target.getAttribute('data-idx');
+    var field = target.getAttribute('data-field');
+    if (idx !== null && field) {
+      idx = Number(idx);
+      if (field === 'name') {
+        billItems[idx].name = target.value;
+      } else {
+        billItems[idx][field] = parseFloat(target.value) || 0;
+        var row = target.closest('tr');
+        var lineTotal = (Number(billItems[idx].qty) || 0) * (Number(billItems[idx].price) || 0);
+        row.cells[4].innerHTML = '<strong>' + formatMoney(lineTotal) + '</strong>';
+        updateTotalsOnly();
+      }
+    }
+  });
+
+  billBodyEl.addEventListener('click', function(e) {
+    var delIdx = e.target.getAttribute('data-del');
+    if (delIdx !== null) {
+      billItems.splice(Number(delIdx), 1);
+      renderBill();
+    }
+  });
+
+  discountInputEl.addEventListener('input', updateTotalsOnly);
+
+  // 7. MANUAL ADD BUTTON
+  function handleManualAdd() {
+    var name = manualNameEl.value.trim();
+    var qty = parseFloat(manualQtyEl.value);
+    var price = parseFloat(manualPriceEl.value);
+
+    if (!name) {
+      alert('Please enter an item name.');
+      manualNameEl.focus();
+      return;
+    }
+    if (isNaN(qty) || qty <= 0) qty = 1;
+    if (isNaN(price) || price < 0) price = 0;
+
+    billItems.push({ name: name, qty: qty, price: price });
+    manualNameEl.value = '';
+    manualQtyEl.value = '1';
+    manualPriceEl.value = '';
+    manualNameEl.focus();
+    renderBill();
+  }
+
+  btnAddManualEl.addEventListener('click', handleManualAdd);
+  manualPriceEl.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleManualAdd();
+    }
+  });
+
+  // 8. VOICE RECOGNITION (WITH HTTPS / LOCAL FILE CHECK & FALLBACK)
+  function setVoiceStatus(msg, type) {
+    voiceStatusEl.innerHTML = msg;
+    voiceStatusEl.className = 'status-box' + (type ? ' ' + type : '');
+  }
+
+  function stopListeningUI() {
+    isListening = false;
+    btnSpeakEl.classList.remove('listening');
+    micLabelEl.textContent = 'Tap to Speak Items';
+  }
+
+  btnSpeakEl.addEventListener('click', function() {
+    // Check if opened as a local file:// instead of https://
+    if (window.location.protocol === 'file:' || window.location.protocol === 'content:') {
+      setVoiceStatus(
+        '<b>Browser Blocked Mic on Local File:</b> Phones &amp; browsers block the mic button when opened from downloads (<code>file://</code>).<br>' +
+        '<b>Instant Fix:</b> Tap the text box below and use your <b>Phone Keyboard Mic 🎙️</b> to speak in Urdu, OR upload this file to GitHub Pages (<code>https://</code>).',
+        'error'
+      );
+      spokenTextEl.focus();
+      return;
+    }
+
+    var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      setVoiceStatus(
+        'Direct voice recognition is not supported in this browser. Tap the text box below and use your <b>Keyboard Mic 🎙️</b> instead.',
+        'error'
+      );
+      spokenTextEl.focus();
+      return;
+    }
+
+    if (isListening && recognition) {
+      recognition.stop();
+      stopListeningUI();
+      return;
+    }
+
+    try {
+      recognition = new SpeechRecognition();
+      recognition.lang = voiceLangEl.value || 'ur-PK';
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+
+      recognition.onstart = function() {
+        isListening = true;
+        btnSpeakEl.classList.add('listening');
+        micLabelEl.textContent = 'Listening... Speak Now (Tap to Stop)';
+        setVoiceStatus('Listening in <b>' + recognition.lang + '</b>... Speak item name, quantity, and price.', 'ok');
+      };
+
+      recognition.onresult = function(event) {
+        var transcript = event.results[0][0].transcript;
+        spokenTextEl.value = transcript;
+        var count = parseAndAddItems(transcript);
+        if (count > 0) {
+          setVoiceStatus('Heard: <b>"' + escapeHtml(transcript) + '"</b> — Added ' + count + ' item(s) to bill!', 'ok');
+        } else {
+          setVoiceStatus('Heard: <b>"' + escapeHtml(transcript) + '"</b> — Edit text below if needed and tap Add.', '');
+        }
+      };
+
+      recognition.onerror = function(event) {
+        stopListeningUI();
+        var errMsg = event.error;
+        if (errMsg === 'not-allowed' || errMsg === 'service-not-allowed') {
+          setVoiceStatus('Microphone permission denied. Please allow Mic access in browser settings or use your <b>Keyboard Mic 🎙️</b> below.', 'error');
+        } else if (errMsg === 'no-speech') {
+          setVoiceStatus('No speech detected. Please tap the red button and speak clearly.', 'error');
+        } else {
+          setVoiceStatus('Voice error (' + escapeHtml(errMsg) + '). You can still use your <b>Keyboard Mic 🎙️</b> in the box below.', 'error');
+        }
+      };
+
+      recognition.onend = function() {
+        stopListeningUI();
+      };
+
+      recognition.start();
+    } catch (err) {
+      stopListeningUI();
+      setVoiceStatus('Could not start microphone: ' + escapeHtml(err.message), 'error');
+    }
+  });
+
+  btnParseSpokenEl.addEventListener('click', function() {
+    var txt = spokenTextEl.value.trim();
+    if (!txt) {
+      alert('Please speak or type items in the box first.');
+      spokenTextEl.focus();
+      return;
+    }
+    var count = parseAndAddItems(txt);
+    if (count > 0) {
+      setVoiceStatus('Added <b>' + count + '</b> item(s) from text to bill!', 'ok');
+      spokenTextEl.value = '';
+    }
+  });
+
+  btnClearSpokenEl.addEventListener('click', function() {
+    spokenTextEl.value = '';
+  });
+
+  // 9. HANDWRITTEN BILL PHOTO SCANNER (DYNAMICALLY LOADS TESSERACT ONLY WHEN USED)
+  ocrImageInputEl.addEventListener('change', function(e) {
+    var file = e.target.files && e.target.files[0];
+    if (!file) return;
+
+    ocrStatusEl.className = 'status-box';
+    ocrStatusEl.innerHTML = '⏳ Loading scanner &amp; reading handwritten bill... Please wait 5-10 seconds.';
+
+    function runOcr() {
+      window.Tesseract.recognize(file, 'eng')
+        .then(function(result) {
+          var text = (result && result.data && result.data.text) ? result.data.text.trim() : '';
+          ocrPreviewWrapEl.style.display = 'block';
+          if (text) {
+            ocrExtractedTextEl.value = text;
+            ocrStatusEl.className = 'status-box ok';
+            ocrStatusEl.innerHTML = '✅ Scan complete! Review the lines below, fix any handwriting mistakes, and tap <b>Convert Extracted Lines to Bill</b>.';
+          } else {
+            ocrExtractedTextEl.value = '';
+            ocrStatusEl.className = 'status-box error';
+            ocrStatusEl.innerHTML = 'Could not read clear text from this photo. Try taking a brighter, closer photo or type the lines below.';
+          }
+        })
+        .catch(function(err) {
+          ocrStatusEl.className = 'status-box error';
+          ocrStatusEl.innerHTML = 'Scanner error: ' + escapeHtml(err.message || 'Failed to read image');
+        });
+    }
+
+    if (window.Tesseract) {
+      runOcr();
+    } else {
+      var script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+      script.onload = runOcr;
+      script.onerror = function() {
+        ocrStatusEl.className = 'status-box error';
+        ocrStatusEl.innerHTML = 'Offline mode: Internet is needed the first time to load the handwriting scanner. You can type lines manually below.';
+        ocrPreviewWrapEl.style.display = 'block';
+      };
+      document.head.appendChild(script);
+    }
+  });
+
+  btnAddOcrItemsEl.addEventListener('click', function() {
+    var txt = ocrExtractedTextEl.value.trim();
+    if (!txt) {
+      alert('No text to convert.');
+      return;
+    }
+    var count = parseAndAddItems(txt);
+    ocrStatusEl.className = 'status-box ok';
+    ocrStatusEl.innerHTML = '✅ Added <b>' + count + '</b> scanned item(s) to the bill!';
+  });
+
+  // 10. NEW BILL, PRINT & WHATSAPP
+  btnNewBillEl.addEventListener('click', function() {
+    if (billItems.length > 0 && !confirm('Clear current bill and start a new one?')) {
+      return;
+    }
+    billItems = [];
+    custNameEl.value = '';
+    custPhoneEl.value = '';
+    discountInputEl.value = '0';
+    spokenTextEl.value = '';
+    // Increment invoice number automatically
+    var currentNo = billNoEl.value;
+    var match = currentNo.match(/(\d+)$/);
+    if (match) {
+      var nextNum = String(Number(match[1]) + 1).padStart(match[1].length, '0');
+      billNoEl.value = currentNo.replace(/\d+$/, nextNum);
+    }
+    setTodayDate();
+    renderBill();
+  });
+
+  btnPrintEl.addEventListener('click', function() {
+    window.print();
+  });
+
+  btnWhatsAppEl.addEventListener('click', function() {
+    if (billItems.length === 0) {
+      alert('Please add at least one item to the bill first.');
+      return;
+    }
+    var lines = [];
+    lines.push('*MUGHAL CORPORATION & PIPE STORE*');
+    lines.push('Kalma Chowk, Ghauri Town Phase 4-A, Islamabad');
+    lines.push('Ph: 0312-5183643 | 0344-4284566');
+    lines.push('--------------------------------');
+    lines.push('Bill #: ' + billNoEl.value);
+    lines.push('Date: ' + (printDateBadgeEl.textContent.replace('Date: ', '')));
+    if (custNameEl.value.trim()) {
+      lines.push('Customer: ' + custNameEl.value.trim());
+    }
+    lines.push('--------------------------------');
+
+    var subtotal = 0;
+    for (var i = 0; i < billItems.length; i++) {
+      var it = billItems[i];
+      var tot = (Number(it.qty) || 0) * (Number(it.price) || 0);
+      subtotal += tot;
+      lines.push((i + 1) + '. ' + it.name + ' (' + it.qty + ' x ' + formatMoney(it.price) + ') = Rs. ' + formatMoney(tot));
+    }
+
+    var discount = Number(discountInputEl.value) || 0;
+    var grandTotal = Math.max(0, subtotal - discount);
+
+    lines.push('--------------------------------');
+    lines.push('Subtotal: Rs. ' + formatMoney(subtotal));
+    if (discount > 0) {
+      lines.push('Discount: Rs. ' + formatMoney(discount));
+    }
+    lines.push('*GRAND TOTAL: Rs. ' + formatMoney(grandTotal) + '*');
+    lines.push('Thank you for your business!');
+
+    var msg = encodeURIComponent(lines.join('
+'));
+    var phone = custPhoneEl.value.replace(/[^0-9]/g, '');
+    if (phone.startsWith('03')) {
+      phone = '92' + phone.substring(1);
+    }
+    var waUrl = phone ? ('https://wa.me/' + phone + '?text=' + msg) : ('https://wa.me/?text=' + msg);
+    window.open(waUrl, '_blank');
+  });
+
+  // 11. INITIALIZE IMMEDIATELY ON LOAD
+  setTodayDate();
+  renderBill();
+})();
+</script>
+</body>
+</html>
