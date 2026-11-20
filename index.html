@@ -464,19 +464,28 @@ $('#mAdd').addEventListener('click',manualAdd);
 ['#mName','#mQty','#mUnit','#mRate'].forEach(function(s){ $(s).addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); manualAdd(); } }); });
 
 // ---------- voice ----------
-var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-var MOBILE = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.maxTouchPoints>1 && /Mac/i.test(navigator.platform));
-var rec=null, listening=false, wantOn=false, pending='', lastFinal='', lastFinalAt=0, chainIdx=0, quickFails=0;
+var SR = window.SpeechRecognition || window.webkitSpeechRecognition || null;
+var rec=null, listening=false, wantOn=false, pending='', lastFinal='', lastFinalAt=0, chainIdx=0;
+var voiceRestartTimer=null, voiceStopTimer=null, voiceRetryDelay=350, voiceSessionId=0;
 function paintLang(){ $$('.chip').forEach(function(c){ c.classList.toggle('on', c.dataset.lang===S.lang); }); }
-$$('.chip').forEach(function(c){ c.addEventListener('click',function(){ S.lang=c.dataset.lang; save('sb_settings',S); paintLang(); $('#sLang').value=S.lang; }); });
-function langChain(){ return S.lang==='en' ? ['en-PK','en-IN','en-US'] : ['ur-PK','ur-IN','ur']; }
+$$('.chip').forEach(function(c){ c.addEventListener('click',function(){
+  S.lang=c.dataset.lang; save('sb_settings',S); paintLang(); $('#sLang').value=S.lang;
+  if(wantOn){ stopVoice(); setHeard('زبان تبدیل ہو گئی۔ دوبارہ مائیک دبائیں۔'); }
+}); });
+function langChain(){ return S.lang==='en' ? ['en-PK','en-IN','en-US','en-GB'] : ['ur-PK','ur-IN','ur']; }
 function setHeard(t){ $('#heard').textContent=t||''; }
-function micUI(on){ $('#mic').classList.toggle('on',on); listening=on; }
-var VMSG={'not-allowed':'مائیک کی اجازت نہیں ملی۔ براؤزر میں Microphone کی اجازت دیں، اور صفحہ https لنک سے کھولیں (فائل سے نہیں)۔','service-not-allowed':'آواز کی سروس بند ہے۔ iPhone: Settings → General → Keyboard → Dictation آن کریں۔','network':'آواز کے لیے انٹرنیٹ چاہیے۔','language-not-supported':'یہ زبان سپورٹ نہیں۔ English چنیں یا کی بورڈ کا 🎤 استعمال کریں۔','audio-capture':'مائیک نہیں ملا۔'};
+function micUI(on){ $('#mic').classList.toggle('on',on); $('#mic').setAttribute('aria-pressed',on?'true':'false'); listening=on; }
+var VMSG={
+ 'not-allowed':'مائیک کی اجازت نہیں ملی۔ Browser settings میں Microphone allow کریں اور صفحہ HTTPS پر کھولیں۔',
+ 'service-not-allowed':'اس براؤزر/ڈیوائس پر speech service دستیاب نہیں۔ کی بورڈ کا 🎤 استعمال کریں۔',
+ 'network':'Speech service کا network مسئلہ ہے۔ انٹرنیٹ چیک کریں؛ دوبارہ کوشش جاری ہے۔',
+ 'language-not-supported':'یہ زبان دستیاب نہیں۔ دوسری زبان منتخب کریں یا کی بورڈ کا 🎤 استعمال کریں۔',
+ 'audio-capture':'مائیکروفون دستیاب نہیں۔ مائیک کی اجازت اور ڈیوائس چیک کریں۔',
+ 'bad-grammar':'Speech service نے درخواست قبول نہیں کی۔'
+};
 
 // Parse text into items. Complete items are added to the bill. A trailing
-// incomplete piece is kept (returned) so the next spoken chunk can finish it;
-// on flush it is put into the manual boxes instead.
+// incomplete piece is kept so the next spoken chunk can finish it.
 function processText(text, flush){
   var list=parseMulti(text), left='', leftP=null;
   list = list.filter(function(p){ return p.n || p.nn; });
@@ -491,22 +500,9 @@ function processText(text, flush){
     $('#mName').value=leftP.n; $('#mQty').value=leftP.q; $('#mUnit').value=leftP.u; $('#mRate').value=leftP.r||'';
     setHeard('⚠️ نام یا ریٹ واضح نہیں — نیچے درست کر کے Add دبائیں');
     toast('نام/ریٹ چیک کریں');
-    (leftP.n ? $('#mRate') : $('#mName')).focus();
     return '';
   }
   return left;
-}
-function onFinal(t){
-  var now=Date.now();
-  if(!t || (t===lastFinal && now-lastFinalAt<1500)) return;   // Android sometimes repeats a final
-  lastFinal=t; lastFinalAt=now;
-  var f=tokenize(t)[0];
-  var cont=!!f && (f.t==='n' || !!(PRICE[f.w]||QTY[f.w]||UNIT[f.w]||FILL[f.w]||STOP[f.w]));   // chunk continues the previous item
-  if(pending && !cont && parseLine(pending).ok){ processText(pending,true); pending=''; }
-  pending=processText((pending+' '+t).trim(), false);
-  $('#quick').value=pending;
-  clearTimeout(pendT);
-  if(pending) pendT=setTimeout(function(){ if(pending){ var x=pending; pending=''; processText(x,true); $('#quick').value=''; } },1600);
 }
 var pendT=null;
 function flushPending(){
@@ -514,69 +510,154 @@ function flushPending(){
   if(pending.trim()) processText(pending,true);
   pending=''; $('#quick').value='';
 }
-function handleText(t){ t=(t||'').trim(); if(!t) return; processText(t,true); $('#quick').value=''; }
-$('#quick').addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); clearTimeout(qT); handleText(this.value); } });
-// phone keyboard 🎤 dictation / typing: parse automatically 2 seconds after the text stops changing
-var qT=null;
-$('#quick').addEventListener('input',function(){
-  if(listening||wantOn) return;
-  var el=this; clearTimeout(qT);
-  qT=setTimeout(function(){ if(el.value.trim() && !listening) handleText(el.value); },2200);
-});
-$('#quickAdd').addEventListener('click',function(){ clearTimeout(qT); handleText($('#quick').value); });
-
+function onFinal(t){
+  var now=Date.now();
+  if(!t || (t===lastFinal && now-lastFinalAt<1200)) return;
+  lastFinal=t; lastFinalAt=now;
+  var f=tokenize(t)[0];
+  var cont=!!f && (f.t==='n' || !!(PRICE[f.w]||QTY[f.w]||UNIT[f.w]||FILL[f.w]||STOP[f.w]));
+  if(pending && !cont && parseLine(pending).ok){ processText(pending,true); pending=''; }
+  pending=processText((pending+' '+t).trim(),false);
+  $('#quick').value=pending;
+  clearTimeout(pendT);
+  if(pending) pendT=setTimeout(function(){
+    if(pending && wantOn){ var x=pending; pending=''; processText(x,true); $('#quick').value=''; }
+  },1800);
+}
+function clearVoiceTimers(){ clearTimeout(voiceRestartTimer); clearTimeout(voiceStopTimer); voiceRestartTimer=null; voiceStopTimer=null; }
 function vFatal(msg){
-  wantOn=false; var r=rec; rec=null;
+  wantOn=false; clearVoiceTimers();
+  var r=rec; rec=null;
   try{ if(r) r.abort(); }catch(e){}
   micUI(false); flushPending(); setHeard(msg);
 }
+function scheduleVoiceRestart(delay){
+  clearTimeout(voiceRestartTimer);
+  if(!wantOn || document.visibilityState==='hidden') return;
+  voiceRestartTimer=setTimeout(function(){
+    voiceRestartTimer=null;
+    if(wantOn && !rec) begin();
+  },delay);
+}
 function begin(){
+  if(!wantOn || document.visibilityState==='hidden') return;
+  if(!SR){ vFatal('اس براؤزر میں voice recognition دستیاب نہیں۔ Chrome/Edge یا Safari کا تازہ ورژن آزمائیں، یا کی بورڈ کا 🎤 استعمال کریں۔'); return; }
   var chain=langChain(), lang=chain[chainIdx];
-  if(!lang){ vFatal('اس فون پر یہ زبان سپورٹ نہیں۔ English چنیں یا کی بورڈ کا 🎤 استعمال کریں۔'); return; }
-  var r; try{ r=new SR(); }catch(e){ vFatal('آواز شروع نہیں ہو سکی: '+e.message); return; }
-  rec=r; var done=0, t0=Date.now(), gotAny=false;
-  r.lang=lang; r.continuous=!MOBILE; r.interimResults=true; r.maxAlternatives=1;
-  r.onstart=function(){ micUI(true); setHeard('🎧 سن رہا ہوں ('+lang+') — ختم کرنے کے لیے سرخ بٹن دبائیں'); };
+  if(!lang){ vFatal('اس زبان کی سہولت دستیاب نہیں۔ زبان تبدیل کریں یا کی بورڈ کا 🎤 استعمال کریں۔'); return; }
+  var r;
+  try{ r=new SR(); }catch(e){ vFatal('آواز شروع نہیں ہو سکی: '+(e.message||e)); return; }
+  var session=++voiceSessionId, started=false, gotResult=false;
+  rec=r;
+  try{
+    r.lang=lang;
+    // Continuous mode where supported. Some mobile browsers still end sessions;
+    // onend below safely starts a fresh session while the user wants the mic on.
+    r.continuous=true;
+    r.interimResults=true;
+    r.maxAlternatives=1;
+  }catch(e){}
+  r.onstart=function(){
+    if(session!==voiceSessionId || rec!==r) return;
+    started=true; voiceRetryDelay=350; micUI(true);
+    setHeard('🎧 سن رہا ہوں ('+lang+') — ختم کرنے کے لیے سرخ بٹن دبائیں');
+  };
   r.onresult=function(e){
-    quickFails=0; gotAny=true; var interim='';
+    if(session!==voiceSessionId || rec!==r) return;
+    gotResult=true;
+    var interim='';
     for(var k=e.resultIndex;k<e.results.length;k++){
-      var res=e.results[k], tx=(res[0].transcript||'').trim();
-      if(res.isFinal){ if(k>=done){ done=k+1; onFinal(tx); } } else interim+=tx+' ';
+      var res=e.results[k], tx=(res[0] && res[0].transcript || '').trim();
+      if(res.isFinal) onFinal(tx); else if(tx) interim+=tx+' ';
     }
-    $('#quick').value=(pending+' '+interim).trim();
-    if(interim.trim()) setHeard('🎧 '+interim.trim());
+    if(interim.trim()){
+      $('#quick').value=(pending+' '+interim).trim();
+      setHeard('🎧 '+interim.trim());
+    }
   };
   r.onerror=function(e){
-    var er=e.error;
-    if(er==='aborted' || er==='no-speech') return;           // silence is fine, we restart below
-    if(er==='language-not-supported' && chainIdx+1<chain.length){ chainIdx++; rec=null; begin(); return; }
-    vFatal((VMSG[er]||'آواز میں مسئلہ')+' ['+er+']');
+    if(session!==voiceSessionId || rec!==r) return;
+    var er=e && e.error || 'unknown';
+    if(er==='aborted' || er==='no-speech') return; // onend owns restart/stop handling
+    if(er==='language-not-supported' && chainIdx+1<chain.length){
+      chainIdx++; rec=null; voiceRetryDelay=350; scheduleVoiceRestart(150); return;
+    }
+    if(er==='network' && wantOn){
+      setHeard('⚠️ نیٹ ورک مسئلہ — دوبارہ رابطہ کیا جا رہا ہے…');
+      return; // many engines fire onend immediately after this
+    }
+    if(er==='not-allowed' || er==='service-not-allowed' || er==='audio-capture'){
+      vFatal((VMSG[er]||'مائیک میں مسئلہ')+' ['+er+']'); return;
+    }
+    setHeard((VMSG[er]||'آواز میں عارضی مسئلہ')+' — دوبارہ کوشش…');
   };
   r.onend=function(){
-    if(rec!==r) return;
+    if(session!==voiceSessionId || rec!==r) return;
+    rec=null;
     if(!wantOn){ micUI(false); flushPending(); return; }
-    // browser stopped by itself (pause / time limit): keep going until the user presses stop
-    quickFails = (Date.now()-t0<1200 && !gotAny) ? quickFails+1 : 0;
-    if(quickFails>(MOBILE?8:4)){ vFatal('آواز بار بار رک رہی ہے۔ دوبارہ کوشش کریں یا کی بورڈ کا 🎤 استعمال کریں۔'); return; }
-    setTimeout(function(){ if(wantOn && rec===r) begin(); }, quickFails?500:(MOBILE?250:150));
+    micUI(false);
+    if(document.visibilityState==='hidden') return;
+    // Back off if the browser repeatedly ends immediately; do not give up on
+    // a normal silence timeout or a long-running mobile recognition session.
+    var delay=started||gotResult ? 350 : voiceRetryDelay;
+    voiceRetryDelay=Math.min(Math.max(voiceRetryDelay*1.7,500),4000);
+    setHeard('🎧 مائیک دوبارہ منسلک ہو رہا ہے…');
+    scheduleVoiceRestart(delay);
   };
-  try{ r.start(); }catch(err){ vFatal('آواز شروع نہیں ہو سکی: '+err.message); }
+  try{ r.start(); }
+  catch(err){
+    if(rec===r) rec=null;
+    if(!wantOn) return;
+    // InvalidStateError commonly means a browser still considers the previous
+    // session active; retry gently instead of switching the mic off.
+    if(err && (err.name==='InvalidStateError' || err.name==='AbortError')){
+      scheduleVoiceRestart(700); return;
+    }
+    vFatal('آواز شروع نہیں ہو سکی: '+(err.message||err));
+  }
 }
 function startVoice(){
   if(!SR){
-    setHeard('اس براؤزر میں آواز کی سہولت نہیں۔ iPhone پر Safari، Android پر Chrome کھولیں، یا کی بورڈ کا 🎤 دبائیں۔');
+    setHeard('اس براؤزر میں آواز کی سہولت نہیں۔ Android پر Chrome، کمپیوٹر پر Chrome/Edge، یا iPhone پر Safari آزمائیں؛ ورنہ کی بورڈ کا 🎤 استعمال کریں۔');
     $('#quick').focus(); return;
   }
-  if(!window.isSecureContext) setHeard('⚠️ صفحہ https لنک سے کھولیں — فائل سے مائیک نہیں چلتا');
-  wantOn=true; pending=''; chainIdx=0; quickFails=0; $('#quick').value='';
+  if(!window.isSecureContext){
+    setHeard('⚠️ مائیک کے لیے صفحہ HTTPS پر کھولیں (localhost بھی ٹھیک ہے)۔');
+    if(location.protocol!=='https:' && location.hostname!=='localhost') return;
+  }
+  wantOn=true; chainIdx=0; voiceRetryDelay=350; lastFinal=''; lastFinalAt=0;
+  clearVoiceTimers(); pending=''; clearTimeout(pendT); $('#quick').value='';
   begin();
 }
 function stopVoice(){
-  wantOn=false; setHeard('⏳ ختم ہو رہا ہے…');
-  try{ if(rec) rec.stop(); }catch(e){ micUI(false); flushPending(); }
-  setTimeout(function(){ if(listening && !wantOn){ micUI(false); flushPending(); rec=null; } },2500);
+  wantOn=false; clearVoiceTimers(); clearTimeout(pendT);
+  setHeard('⏳ ختم ہو رہا ہے…');
+  var r=rec;
+  if(!r){ micUI(false); flushPending(); return; }
+  try{ r.stop(); }catch(e){
+    try{ r.abort(); }catch(ignore){}
+    if(rec===r) rec=null;
+    micUI(false); flushPending(); return;
+  }
+  voiceStopTimer=setTimeout(function(){
+    if(!wantOn){
+      voiceSessionId++; rec=null; micUI(false); flushPending();
+      setHeard('✓ سننا بند ہو گیا');
+    }
+  },1800);
 }
 $('#mic').addEventListener('click',function(){ if(wantOn||listening) stopVoice(); else startVoice(); });
+// Browsers may suspend speech recognition when the tab/app is backgrounded.
+// Resume only if the user had explicitly left the microphone running.
+document.addEventListener('visibilitychange',function(){
+  if(!wantOn) return;
+  if(document.visibilityState==='hidden'){
+    clearTimeout(voiceRestartTimer);
+    var r=rec; rec=null; voiceSessionId++;
+    try{ if(r) r.abort(); }catch(e){}
+    micUI(false);
+  }else if(wantOn){ scheduleVoiceRestart(300); }
+});
+
 
 // ---------- handwritten photo -> bill ----------
 $('#photoBtn').addEventListener('click',function(){
